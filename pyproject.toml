@@ -9,4 +9,6 @@ dependencies = [
 "numpy>=1.26",
 "pandas>=2.2",
 "matplotlib>=3.9",
+"scikit-learn>=1.4",
+"xgboost>=1.7",
 ]
