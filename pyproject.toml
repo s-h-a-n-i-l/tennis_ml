@@ -11,4 +11,7 @@ dependencies = [
 "matplotlib>=3.9",
 "scikit-learn>=1.4",
 "xgboost>=1.7",
+"fastparquet>=0.8",
+"jupyterlab>=4.0",
+"pyarrow>=12.0",
 ]
