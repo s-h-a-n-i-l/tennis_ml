@@ -1,4 +1,0 @@
-# Use biber for biblatex
-$pdf_mode = 1;
-$pdflatex = 'pdflatex -interaction=nonstopmode -file-line-error -shell-escape %O %S';
-$biber = 'biber %O %B';
