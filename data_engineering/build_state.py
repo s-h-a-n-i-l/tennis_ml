@@ -353,6 +353,19 @@ def build_match_state_panel(
             "p2_games_in_set_cum": "p2_games_before",
         }
     )
+    # Ensure no non-finite values before integer casts downstream
+    df["p1_games_before"] = (
+        pd.to_numeric(df["p1_games_before"], errors="coerce")
+        .replace([np.inf, -np.inf], 0)
+        .fillna(0)
+        .astype(int)
+    )
+    df["p2_games_before"] = (
+        pd.to_numeric(df["p2_games_before"], errors="coerce")
+        .replace([np.inf, -np.inf], 0)
+        .fillna(0)
+        .astype(int)
+    )
 
     set_last_games = games_tbl.groupby(["match_id", "SetNo"]).tail(1).copy()
     set_last_games["set_winner"] = np.where(

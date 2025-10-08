@@ -14,7 +14,6 @@ def compute(
     """Return opponent sets before the current set for each perspective."""
 
     is_p1 = perspective.astype(str).str.upper().eq("P1")
-    return pd.Series(
-        np.where(is_p1, p2_sets.astype(int), p1_sets.astype(int)),
-        index=perspective.index,
-    )
+    p1 = pd.to_numeric(p1_sets, errors="coerce").replace([np.inf, -np.inf], 0).fillna(0).astype(int)
+    p2 = pd.to_numeric(p2_sets, errors="coerce").replace([np.inf, -np.inf], 0).fillna(0).astype(int)
+    return pd.Series(np.where(is_p1, p2, p1), index=perspective.index)
