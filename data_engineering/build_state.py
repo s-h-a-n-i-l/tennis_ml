@@ -14,22 +14,22 @@ import pandas as pd
 from .features import (
     aces,
     aces_diff,
-    aces_l60,
+    aces_l30,
     ace_rate,
-    ace_rate_l60,
+    ace_rate_l30,
     avg_srv_speed,
-    avg_srv_speed_l60,
+    avg_srv_speed_l30,
     best_of,
     bp_conv_rate,
     bp_defend_rate,
     df_diff,
     df_rate,
-    df_rate_l60,
+    df_rate_l30,
     double_faults,
     fs_in_pct,
-    fs_in_pct_l60,
+    fs_in_pct_l30,
     fs_win_pct,
-    fs_win_pct_l60,
+    fs_win_pct_l30,
     games_in_set_against,
     games_in_set_for,
     is_break_point,
@@ -37,39 +37,39 @@ from .features import (
     is_game_point_for,
     is_tiebreak,
     opp_aces,
-    opp_aces_l60,
+    opp_aces_l30,
     opp_ace_rate,
-    opp_ace_rate_l60,
+    opp_ace_rate_l30,
     opp_avg_srv_speed,
-    opp_avg_srv_speed_l60,
+    opp_avg_srv_speed_l30,
     opp_bp_conv_rate,
     opp_bp_defend_rate,
     opp_df_rate,
-    opp_df_rate_l60,
+    opp_df_rate_l30,
     opp_double_faults,
     opp_fs_in_pct,
-    opp_fs_in_pct_l60,
+    opp_fs_in_pct_l30,
     opp_fs_win_pct,
-    opp_fs_win_pct_l60,
+    opp_fs_win_pct_l30,
     opp_ret_win_pct,
-    opp_ret_win_pct_l60,
+    opp_ret_win_pct_l30,
     opp_ss_in_pct,
-    opp_ss_in_pct_l60,
+    opp_ss_in_pct_l30,
     opp_ss_win_pct,
-    opp_ss_win_pct_l60,
+    opp_ss_win_pct_l30,
     point_idx,
     pts_in_game_against,
     pts_in_game_for,
     ret_win_pct,
-    ret_win_pct_l60,
+    ret_win_pct_l30,
     server_is_persp,
     sets_against,
     sets_for,
     sets_needed_to_win,
     ss_in_pct,
-    ss_in_pct_l60,
+    ss_in_pct_l30,
     ss_win_pct,
-    ss_win_pct_l60,
+    ss_win_pct_l30,
     ttl_diff,
     y_match,
 )
@@ -143,7 +143,7 @@ def _event_rolling_sum(
 def build_match_state_panel(
     input_data: pd.DataFrame,
     best_of_default: int = 5,
-    ma_window: int = 60,
+    ma_window: int = 30,
 ) -> pd.DataFrame:
     """Construct a point-level panel with state variables from both perspectives.
 
@@ -281,31 +281,31 @@ def build_match_state_panel(
 
     for side in (1, 2):
         df[f"p{side}_ace_rate"] = _safe_div(df[f"p{side}_aces_cum"], df[f"p{side}_sv_pts"])
-        df[f"p{side}_avg_srv_speed_l60"] = _event_rolling_ratio(
+        df[f"p{side}_avg_srv_speed_l30"] = _event_rolling_ratio(
             df, f"p{side}_srv_speed_cum", f"p{side}_sv_pts", f"p{side}_sv_pts", ma_window
         )
-        df[f"p{side}_fs_in_pct_l60"] = _event_rolling_ratio(
+        df[f"p{side}_fs_in_pct_l30"] = _event_rolling_ratio(
             df, f"p{side}_fs_in_cum", f"p{side}_sv_pts", f"p{side}_sv_pts", ma_window
         )
-        df[f"p{side}_ss_in_pct_l60"] = _event_rolling_ratio(
+        df[f"p{side}_ss_in_pct_l30"] = _event_rolling_ratio(
             df, f"p{side}_ss_in_cum", f"p{side}_ss_att_cum", f"p{side}_ss_att_cum", ma_window
         )
-        df[f"p{side}_fs_win_pct_l60"] = _event_rolling_ratio(
+        df[f"p{side}_fs_win_pct_l30"] = _event_rolling_ratio(
             df, f"p{side}_fs_won_cum", f"p{side}_fs_in_cum", f"p{side}_fs_in_cum", ma_window
         )
-        df[f"p{side}_ss_win_pct_l60"] = _event_rolling_ratio(
+        df[f"p{side}_ss_win_pct_l30"] = _event_rolling_ratio(
             df, f"p{side}_ss_won_cum", f"p{side}_ss_in_cum", f"p{side}_ss_in_cum", ma_window
         )
-        df[f"p{side}_ret_win_pct_l60"] = _event_rolling_ratio(
+        df[f"p{side}_ret_win_pct_l30"] = _event_rolling_ratio(
             df, f"p{side}_ret_won_cum", f"p{side}_ret_pts_cum", f"p{side}_ret_pts_cum", ma_window
         )
-        df[f"p{side}_aces_l60"] = _event_rolling_sum(
+        df[f"p{side}_aces_l30"] = _event_rolling_sum(
             df, f"p{side}_aces_cum", f"p{side}_sv_pts", ma_window
         )
-        df[f"p{side}_ace_rate_l60"] = _event_rolling_ratio(
+        df[f"p{side}_ace_rate_l30"] = _event_rolling_ratio(
             df, f"p{side}_aces_cum", f"p{side}_sv_pts", f"p{side}_sv_pts", ma_window
         )
-        df[f"p{side}_df_rate_l60"] = _event_rolling_ratio(
+        df[f"p{side}_df_rate_l30"] = _event_rolling_ratio(
             df, f"p{side}_df_cum", f"p{side}_sv_pts", f"p{side}_sv_pts", ma_window
         )
 
@@ -500,24 +500,24 @@ def build_match_state_panel(
         "p2_df_rate",
         "p1_ace_rate",
         "p2_ace_rate",
-        "p1_avg_srv_speed_l60",
-        "p2_avg_srv_speed_l60",
-        "p1_fs_in_pct_l60",
-        "p2_fs_in_pct_l60",
-        "p1_ss_in_pct_l60",
-        "p2_ss_in_pct_l60",
-        "p1_fs_win_pct_l60",
-        "p2_fs_win_pct_l60",
-        "p1_ss_win_pct_l60",
-        "p2_ss_win_pct_l60",
-        "p1_ret_win_pct_l60",
-        "p2_ret_win_pct_l60",
-        "p1_aces_l60",
-        "p2_aces_l60",
-        "p1_df_rate_l60",
-        "p2_df_rate_l60",
-        "p1_ace_rate_l60",
-        "p2_ace_rate_l60",
+        "p1_avg_srv_speed_l30",
+        "p2_avg_srv_speed_l30",
+        "p1_fs_in_pct_l30",
+        "p2_fs_in_pct_l30",
+        "p1_ss_in_pct_l30",
+        "p2_ss_in_pct_l30",
+        "p1_fs_win_pct_l30",
+        "p2_fs_win_pct_l30",
+        "p1_ss_win_pct_l30",
+        "p2_ss_win_pct_l30",
+        "p1_ret_win_pct_l30",
+        "p2_ret_win_pct_l30",
+        "p1_aces_l30",
+        "p2_aces_l30",
+        "p1_df_rate_l30",
+        "p2_df_rate_l30",
+        "p1_ace_rate_l30",
+        "p2_ace_rate_l30",
         "p1_bp_conv_rate",
         "p2_bp_conv_rate",
         "p1_bp_defend_rate",
@@ -615,32 +615,32 @@ def build_match_state_panel(
         panel["perspective"], panel["p1_ace_rate"], panel["p2_ace_rate"]
     )
 
-    panel["avg_srv_speed_l60"] = avg_srv_speed_l60.compute(
-        panel["perspective"], panel["p1_avg_srv_speed_l60"], panel["p2_avg_srv_speed_l60"]
+    panel["avg_srv_speed_l30"] = avg_srv_speed_l30.compute(
+        panel["perspective"], panel["p1_avg_srv_speed_l30"], panel["p2_avg_srv_speed_l30"]
     )
-    panel["fs_in_pct_l60"] = fs_in_pct_l60.compute(
-        panel["perspective"], panel["p1_fs_in_pct_l60"], panel["p2_fs_in_pct_l60"]
+    panel["fs_in_pct_l30"] = fs_in_pct_l30.compute(
+        panel["perspective"], panel["p1_fs_in_pct_l30"], panel["p2_fs_in_pct_l30"]
     )
-    panel["ss_in_pct_l60"] = ss_in_pct_l60.compute(
-        panel["perspective"], panel["p1_ss_in_pct_l60"], panel["p2_ss_in_pct_l60"]
+    panel["ss_in_pct_l30"] = ss_in_pct_l30.compute(
+        panel["perspective"], panel["p1_ss_in_pct_l30"], panel["p2_ss_in_pct_l30"]
     )
-    panel["fs_win_pct_l60"] = fs_win_pct_l60.compute(
-        panel["perspective"], panel["p1_fs_win_pct_l60"], panel["p2_fs_win_pct_l60"]
+    panel["fs_win_pct_l30"] = fs_win_pct_l30.compute(
+        panel["perspective"], panel["p1_fs_win_pct_l30"], panel["p2_fs_win_pct_l30"]
     )
-    panel["ss_win_pct_l60"] = ss_win_pct_l60.compute(
-        panel["perspective"], panel["p1_ss_win_pct_l60"], panel["p2_ss_win_pct_l60"]
+    panel["ss_win_pct_l30"] = ss_win_pct_l30.compute(
+        panel["perspective"], panel["p1_ss_win_pct_l30"], panel["p2_ss_win_pct_l30"]
     )
-    panel["ret_win_pct_l60"] = ret_win_pct_l60.compute(
-        panel["perspective"], panel["p1_ret_win_pct_l60"], panel["p2_ret_win_pct_l60"]
+    panel["ret_win_pct_l30"] = ret_win_pct_l30.compute(
+        panel["perspective"], panel["p1_ret_win_pct_l30"], panel["p2_ret_win_pct_l30"]
     )
-    panel["aces_l60"] = aces_l60.compute(
-        panel["perspective"], panel["p1_aces_l60"], panel["p2_aces_l60"]
+    panel["aces_l30"] = aces_l30.compute(
+        panel["perspective"], panel["p1_aces_l30"], panel["p2_aces_l30"]
     )
-    panel["df_rate_l60"] = df_rate_l60.compute(
-        panel["perspective"], panel["p1_df_rate_l60"], panel["p2_df_rate_l60"]
+    panel["df_rate_l30"] = df_rate_l30.compute(
+        panel["perspective"], panel["p1_df_rate_l30"], panel["p2_df_rate_l30"]
     )
-    panel["ace_rate_l60"] = ace_rate_l60.compute(
-        panel["perspective"], panel["p1_ace_rate_l60"], panel["p2_ace_rate_l60"]
+    panel["ace_rate_l30"] = ace_rate_l30.compute(
+        panel["perspective"], panel["p1_ace_rate_l30"], panel["p2_ace_rate_l30"]
     )
 
     panel["bp_conv_rate"] = bp_conv_rate.compute(
@@ -680,32 +680,32 @@ def build_match_state_panel(
     panel["opp_ace_rate"] = opp_ace_rate.compute(
         panel["perspective"], panel["p1_ace_rate"], panel["p2_ace_rate"]
     )
-    panel["opp_avg_srv_speed_l60"] = opp_avg_srv_speed_l60.compute(
-        panel["perspective"], panel["p1_avg_srv_speed_l60"], panel["p2_avg_srv_speed_l60"]
+    panel["opp_avg_srv_speed_l30"] = opp_avg_srv_speed_l30.compute(
+        panel["perspective"], panel["p1_avg_srv_speed_l30"], panel["p2_avg_srv_speed_l30"]
     )
-    panel["opp_fs_in_pct_l60"] = opp_fs_in_pct_l60.compute(
-        panel["perspective"], panel["p1_fs_in_pct_l60"], panel["p2_fs_in_pct_l60"]
+    panel["opp_fs_in_pct_l30"] = opp_fs_in_pct_l30.compute(
+        panel["perspective"], panel["p1_fs_in_pct_l30"], panel["p2_fs_in_pct_l30"]
     )
-    panel["opp_ss_in_pct_l60"] = opp_ss_in_pct_l60.compute(
-        panel["perspective"], panel["p1_ss_in_pct_l60"], panel["p2_ss_in_pct_l60"]
+    panel["opp_ss_in_pct_l30"] = opp_ss_in_pct_l30.compute(
+        panel["perspective"], panel["p1_ss_in_pct_l30"], panel["p2_ss_in_pct_l30"]
     )
-    panel["opp_fs_win_pct_l60"] = opp_fs_win_pct_l60.compute(
-        panel["perspective"], panel["p1_fs_win_pct_l60"], panel["p2_fs_win_pct_l60"]
+    panel["opp_fs_win_pct_l30"] = opp_fs_win_pct_l30.compute(
+        panel["perspective"], panel["p1_fs_win_pct_l30"], panel["p2_fs_win_pct_l30"]
     )
-    panel["opp_ss_win_pct_l60"] = opp_ss_win_pct_l60.compute(
-        panel["perspective"], panel["p1_ss_win_pct_l60"], panel["p2_ss_win_pct_l60"]
+    panel["opp_ss_win_pct_l30"] = opp_ss_win_pct_l30.compute(
+        panel["perspective"], panel["p1_ss_win_pct_l30"], panel["p2_ss_win_pct_l30"]
     )
-    panel["opp_ret_win_pct_l60"] = opp_ret_win_pct_l60.compute(
-        panel["perspective"], panel["p1_ret_win_pct_l60"], panel["p2_ret_win_pct_l60"]
+    panel["opp_ret_win_pct_l30"] = opp_ret_win_pct_l30.compute(
+        panel["perspective"], panel["p1_ret_win_pct_l30"], panel["p2_ret_win_pct_l30"]
     )
-    panel["opp_aces_l60"] = opp_aces_l60.compute(
-        panel["perspective"], panel["p1_aces_l60"], panel["p2_aces_l60"]
+    panel["opp_aces_l30"] = opp_aces_l30.compute(
+        panel["perspective"], panel["p1_aces_l30"], panel["p2_aces_l30"]
     )
-    panel["opp_df_rate_l60"] = opp_df_rate_l60.compute(
-        panel["perspective"], panel["p1_df_rate_l60"], panel["p2_df_rate_l60"]
+    panel["opp_df_rate_l30"] = opp_df_rate_l30.compute(
+        panel["perspective"], panel["p1_df_rate_l30"], panel["p2_df_rate_l30"]
     )
-    panel["opp_ace_rate_l60"] = opp_ace_rate_l60.compute(
-        panel["perspective"], panel["p1_ace_rate_l60"], panel["p2_ace_rate_l60"]
+    panel["opp_ace_rate_l30"] = opp_ace_rate_l30.compute(
+        panel["perspective"], panel["p1_ace_rate_l30"], panel["p2_ace_rate_l30"]
     )
     panel["opp_bp_conv_rate"] = opp_bp_conv_rate.compute(
         panel["perspective"], panel["p1_bp_conv_rate"], panel["p2_bp_conv_rate"]
@@ -749,24 +749,24 @@ def build_match_state_panel(
         "p2_df_rate",
         "p1_ace_rate",
         "p2_ace_rate",
-        "p1_avg_srv_speed_l60",
-        "p2_avg_srv_speed_l60",
-        "p1_fs_in_pct_l60",
-        "p2_fs_in_pct_l60",
-        "p1_ss_in_pct_l60",
-        "p2_ss_in_pct_l60",
-        "p1_fs_win_pct_l60",
-        "p2_fs_win_pct_l60",
-        "p1_ss_win_pct_l60",
-        "p2_ss_win_pct_l60",
-        "p1_ret_win_pct_l60",
-        "p2_ret_win_pct_l60",
-        "p1_aces_l60",
-        "p2_aces_l60",
-        "p1_df_rate_l60",
-        "p2_df_rate_l60",
-        "p1_ace_rate_l60",
-        "p2_ace_rate_l60",
+        "p1_avg_srv_speed_l30",
+        "p2_avg_srv_speed_l30",
+        "p1_fs_in_pct_l30",
+        "p2_fs_in_pct_l30",
+        "p1_ss_in_pct_l30",
+        "p2_ss_in_pct_l30",
+        "p1_fs_win_pct_l30",
+        "p2_fs_win_pct_l30",
+        "p1_ss_win_pct_l30",
+        "p2_ss_win_pct_l30",
+        "p1_ret_win_pct_l30",
+        "p2_ret_win_pct_l30",
+        "p1_aces_l30",
+        "p2_aces_l30",
+        "p1_df_rate_l30",
+        "p2_df_rate_l30",
+        "p1_ace_rate_l30",
+        "p2_ace_rate_l30",
         "p1_bp_conv_rate",
         "p2_bp_conv_rate",
         "p1_bp_defend_rate",
@@ -810,15 +810,15 @@ def build_match_state_panel(
         "double_faults",
         "df_rate",
         "ace_rate",
-        "avg_srv_speed_l60",
-        "fs_in_pct_l60",
-        "ss_in_pct_l60",
-        "fs_win_pct_l60",
-        "ss_win_pct_l60",
-        "ret_win_pct_l60",
-        "aces_l60",
-        "df_rate_l60",
-        "ace_rate_l60",
+        "avg_srv_speed_l30",
+        "fs_in_pct_l30",
+        "ss_in_pct_l30",
+        "fs_win_pct_l30",
+        "ss_win_pct_l30",
+        "ret_win_pct_l30",
+        "aces_l30",
+        "df_rate_l30",
+        "ace_rate_l30",
         "bp_conv_rate",
         "bp_defend_rate",
         "opp_avg_srv_speed",
@@ -831,15 +831,15 @@ def build_match_state_panel(
         "opp_double_faults",
         "opp_df_rate",
         "opp_ace_rate",
-        "opp_avg_srv_speed_l60",
-        "opp_fs_in_pct_l60",
-        "opp_ss_in_pct_l60",
-        "opp_fs_win_pct_l60",
-        "opp_ss_win_pct_l60",
-        "opp_ret_win_pct_l60",
-        "opp_aces_l60",
-        "opp_df_rate_l60",
-        "opp_ace_rate_l60",
+        "opp_avg_srv_speed_l30",
+        "opp_fs_in_pct_l30",
+        "opp_ss_in_pct_l30",
+        "opp_fs_win_pct_l30",
+        "opp_ss_win_pct_l30",
+        "opp_ret_win_pct_l30",
+        "opp_aces_l30",
+        "opp_df_rate_l30",
+        "opp_ace_rate_l30",
         "opp_bp_conv_rate",
         "opp_bp_defend_rate",
         "y_match",
