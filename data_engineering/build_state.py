@@ -14,22 +14,16 @@ import pandas as pd
 from .features import (
     aces,
     aces_diff,
-    aces_l30,
     ace_rate,
-    ace_rate_l30,
     avg_srv_speed,
-    avg_srv_speed_l30,
     best_of,
     bp_conv_rate,
     bp_defend_rate,
     df_diff,
     df_rate,
-    df_rate_l30,
     double_faults,
     fs_in_pct,
-    fs_in_pct_l30,
     fs_win_pct,
-    fs_win_pct_l30,
     games_in_set_against,
     games_in_set_for,
     is_break_point,
@@ -37,39 +31,27 @@ from .features import (
     is_game_point_for,
     is_tiebreak,
     opp_aces,
-    opp_aces_l30,
     opp_ace_rate,
-    opp_ace_rate_l30,
     opp_avg_srv_speed,
-    opp_avg_srv_speed_l30,
     opp_bp_conv_rate,
     opp_bp_defend_rate,
     opp_df_rate,
-    opp_df_rate_l30,
     opp_double_faults,
     opp_fs_in_pct,
-    opp_fs_in_pct_l30,
     opp_fs_win_pct,
-    opp_fs_win_pct_l30,
     opp_ret_win_pct,
-    opp_ret_win_pct_l30,
     opp_ss_in_pct,
-    opp_ss_in_pct_l30,
     opp_ss_win_pct,
-    opp_ss_win_pct_l30,
     point_idx,
     pts_in_game_against,
     pts_in_game_for,
     ret_win_pct,
-    ret_win_pct_l30,
     server_is_persp,
     sets_against,
     sets_for,
     sets_needed_to_win,
     ss_in_pct,
-    ss_in_pct_l30,
     ss_win_pct,
-    ss_win_pct_l30,
     ttl_diff,
     y_match,
 )
@@ -88,62 +70,9 @@ def _safe_div(a: pd.Series, b: pd.Series) -> pd.Series:
     return (a / denom).fillna(0.0).astype(float)
 
 
-def _event_rolling_ratio(
-    df: pd.DataFrame,
-    num_cum_col: str,
-    den_cum_col: str,
-    event_cum_col: str,
-    window: int,
-) -> pd.Series:
-    """Event-based rolling ratio over the last ``window`` events.
-
-    Works from cumulative counters: the difference of the cumulative at event
-    boundaries yields the per-event increments.
-    """
-
-    out = pd.Series(index=df.index, dtype=float)
-    for mid, g in df.groupby("match_id", sort=False):
-        events = g[event_cum_col].astype(float)
-        ev_mask = events.diff().fillna(events) > 0
-        if not ev_mask.any():
-            out.loc[g.index] = 0.0
-            continue
-        ev_points = g.loc[ev_mask, [num_cum_col, den_cum_col]].copy()
-        num_inc = ev_points[num_cum_col].diff().fillna(ev_points[num_cum_col])
-        den_inc = ev_points[den_cum_col].diff().fillna(ev_points[den_cum_col])
-        num_roll = num_inc.rolling(window, min_periods=1).sum()
-        den_roll = den_inc.rolling(window, min_periods=1).sum()
-        ratio = _safe_div(num_roll, den_roll)
-        out.loc[g.index] = ratio.reindex(g.index).ffill().fillna(0.0).to_numpy()
-    return out
-
-
-def _event_rolling_sum(
-    df: pd.DataFrame,
-    cum_col: str,
-    event_cum_col: str,
-    window: int,
-) -> pd.Series:
-    """Event-based rolling sum over the last ``window`` events."""
-
-    out = pd.Series(index=df.index, dtype=float)
-    for mid, g in df.groupby("match_id", sort=False):
-        events = g[event_cum_col].astype(float)
-        ev_mask = events.diff().fillna(events) > 0
-        if not ev_mask.any():
-            out.loc[g.index] = 0.0
-            continue
-        ev_points = g.loc[ev_mask, [cum_col]].copy()
-        increments = ev_points[cum_col].diff().fillna(ev_points[cum_col])
-        rolling = increments.rolling(window, min_periods=1).sum()
-        out.loc[g.index] = rolling.reindex(g.index).ffill().fillna(0.0).to_numpy()
-    return out
-
-
 def build_match_state_panel(
     input_data: pd.DataFrame,
     best_of_default: int = 5,
-    ma_window: int = 30,
 ) -> pd.DataFrame:
     """Construct a point-level panel with state variables from both perspectives.
 
@@ -209,43 +138,75 @@ def build_match_state_panel(
     df["ttl_p1"] = p1_won_point.groupby(df["match_id"]).cumsum().shift(1).fillna(0).astype(int)
     df["ttl_p2"] = p2_won_point.groupby(df["match_id"]).cumsum().shift(1).fillna(0).astype(int)
 
-    srv_cols = {
-        "P1FirstSrvIn",
-        "P1FirstSrvWon",
-        "P1SecondSrvIn",
-        "P1SecondSrvWon",
-        "P1DoubleFault",
-        "P2FirstSrvIn",
-        "P2FirstSrvWon",
-        "P2SecondSrvIn",
-        "P2SecondSrvWon",
-        "P2DoubleFault",
-    }
-    have_srv = srv_cols.issubset(df.columns)
+    serve_number = (
+        pd.to_numeric(df["ServeNumber"], errors="coerce") if "ServeNumber" in df.columns else None
+    )
 
     for side in (1, 2):
-        if have_srv:
-            df[f"p{side}_fs_in_cum"] = (
-                df[f"P{side}FirstSrvIn"].groupby(df["match_id"]).cumsum().shift(1).fillna(0)
-            )
-            df[f"p{side}_fs_won_cum"] = (
-                df[f"P{side}FirstSrvWon"].groupby(df["match_id"]).cumsum().shift(1).fillna(0)
-            )
-            df[f"p{side}_ss_in_cum"] = (
-                df[f"P{side}SecondSrvIn"].groupby(df["match_id"]).cumsum().shift(1).fillna(0)
-            )
-            df[f"p{side}_ss_won_cum"] = (
-                df[f"P{side}SecondSrvWon"].groupby(df["match_id"]).cumsum().shift(1).fillna(0)
-            )
-            df[f"p{side}_df_cum"] = (
-                df[f"P{side}DoubleFault"].groupby(df["match_id"]).cumsum().shift(1).fillna(0)
-            )
+        srv_mask_bool = df["PointServer"] == side
+        srv_mask = srv_mask_bool.astype(int)
+
+        def _event_series(col_name: str) -> pd.Series | None:
+            if col_name not in df.columns:
+                return None
+            numeric = pd.to_numeric(df[col_name], errors="coerce")
+            if not numeric.notna().any():
+                return None
+            values = numeric.fillna(0).astype(float)
+            return values.where(srv_mask_bool, 0.0)
+
+        fs_in_raw = _event_series(f"P{side}FirstSrvIn")
+        fs_won_raw = _event_series(f"P{side}FirstSrvWon")
+        ss_in_raw = _event_series(f"P{side}SecondSrvIn")
+        ss_won_raw = _event_series(f"P{side}SecondSrvWon")
+        df_raw = _event_series(f"P{side}DoubleFault")
+
+        if serve_number is not None:
+            serve_no = serve_number.fillna(0)
+            first_fb = ((serve_no == 1) & srv_mask_bool).astype(int)
+            second_fb = ((serve_no == 2) & srv_mask_bool).astype(int)
         else:
-            df[f"p{side}_fs_in_cum"] = 0.0
-            df[f"p{side}_fs_won_cum"] = 0.0
-            df[f"p{side}_ss_in_cum"] = 0.0
-            df[f"p{side}_ss_won_cum"] = 0.0
-            df[f"p{side}_df_cum"] = 0.0
+            first_fb = pd.Series(0, index=df.index, dtype=int)
+            second_fb = pd.Series(0, index=df.index, dtype=int)
+
+        if df_raw is not None:
+            df_event = df_raw.fillna(0).astype(int)
+        else:
+            df_event = pd.Series(0, index=df.index, dtype=int)
+
+        df_event_bool = df_event.astype(bool)
+        server_won = (p1_won_point if side == 1 else p2_won_point).astype(bool)
+
+        second_in_fb = (second_fb.astype(bool) & ~df_event_bool).astype(int)
+        first_won_fb = (first_fb.astype(bool) & server_won).astype(int)
+        second_won_fb = (second_in_fb.astype(bool) & server_won).astype(int)
+
+        def _pick(raw: pd.Series | None, fallback: pd.Series) -> pd.Series:
+            if raw is not None:
+                return raw.astype(float)
+            return fallback.astype(float)
+
+        fs_in_events = _pick(fs_in_raw, first_fb)
+        fs_won_events = _pick(fs_won_raw, first_won_fb)
+        ss_in_events = _pick(ss_in_raw, second_in_fb)
+        ss_won_events = _pick(ss_won_raw, second_won_fb)
+        df_events = _pick(df_raw, df_event)
+
+        df[f"p{side}_fs_in_cum"] = (
+            fs_in_events.groupby(df["match_id"]).cumsum().shift(1).fillna(0).astype(float)
+        )
+        df[f"p{side}_fs_won_cum"] = (
+            fs_won_events.groupby(df["match_id"]).cumsum().shift(1).fillna(0).astype(float)
+        )
+        df[f"p{side}_ss_in_cum"] = (
+            ss_in_events.groupby(df["match_id"]).cumsum().shift(1).fillna(0).astype(float)
+        )
+        df[f"p{side}_ss_won_cum"] = (
+            ss_won_events.groupby(df["match_id"]).cumsum().shift(1).fillna(0).astype(float)
+        )
+        df[f"p{side}_df_cum"] = (
+            df_events.groupby(df["match_id"]).cumsum().shift(1).fillna(0).astype(float)
+        )
 
         df[f"p{side}_fs_in_pct"] = _safe_div(df[f"p{side}_fs_in_cum"], df[f"p{side}_sv_pts"])
         df[f"p{side}_ss_att_cum"] = df[f"p{side}_ss_in_cum"] + df[f"p{side}_df_cum"]
@@ -281,33 +242,6 @@ def build_match_state_panel(
 
     for side in (1, 2):
         df[f"p{side}_ace_rate"] = _safe_div(df[f"p{side}_aces_cum"], df[f"p{side}_sv_pts"])
-        df[f"p{side}_avg_srv_speed_l30"] = _event_rolling_ratio(
-            df, f"p{side}_srv_speed_cum", f"p{side}_sv_pts", f"p{side}_sv_pts", ma_window
-        )
-        df[f"p{side}_fs_in_pct_l30"] = _event_rolling_ratio(
-            df, f"p{side}_fs_in_cum", f"p{side}_sv_pts", f"p{side}_sv_pts", ma_window
-        )
-        df[f"p{side}_ss_in_pct_l30"] = _event_rolling_ratio(
-            df, f"p{side}_ss_in_cum", f"p{side}_ss_att_cum", f"p{side}_ss_att_cum", ma_window
-        )
-        df[f"p{side}_fs_win_pct_l30"] = _event_rolling_ratio(
-            df, f"p{side}_fs_won_cum", f"p{side}_fs_in_cum", f"p{side}_fs_in_cum", ma_window
-        )
-        df[f"p{side}_ss_win_pct_l30"] = _event_rolling_ratio(
-            df, f"p{side}_ss_won_cum", f"p{side}_ss_in_cum", f"p{side}_ss_in_cum", ma_window
-        )
-        df[f"p{side}_ret_win_pct_l30"] = _event_rolling_ratio(
-            df, f"p{side}_ret_won_cum", f"p{side}_ret_pts_cum", f"p{side}_ret_pts_cum", ma_window
-        )
-        df[f"p{side}_aces_l30"] = _event_rolling_sum(
-            df, f"p{side}_aces_cum", f"p{side}_sv_pts", ma_window
-        )
-        df[f"p{side}_ace_rate_l30"] = _event_rolling_ratio(
-            df, f"p{side}_aces_cum", f"p{side}_sv_pts", f"p{side}_sv_pts", ma_window
-        )
-        df[f"p{side}_df_rate_l30"] = _event_rolling_ratio(
-            df, f"p{side}_df_cum", f"p{side}_sv_pts", f"p{side}_sv_pts", ma_window
-        )
 
     game_change = (
         (df["SetNo"].astype(str) + "-" + df["GameNo"].astype(str))
@@ -500,24 +434,6 @@ def build_match_state_panel(
         "p2_df_rate",
         "p1_ace_rate",
         "p2_ace_rate",
-        "p1_avg_srv_speed_l30",
-        "p2_avg_srv_speed_l30",
-        "p1_fs_in_pct_l30",
-        "p2_fs_in_pct_l30",
-        "p1_ss_in_pct_l30",
-        "p2_ss_in_pct_l30",
-        "p1_fs_win_pct_l30",
-        "p2_fs_win_pct_l30",
-        "p1_ss_win_pct_l30",
-        "p2_ss_win_pct_l30",
-        "p1_ret_win_pct_l30",
-        "p2_ret_win_pct_l30",
-        "p1_aces_l30",
-        "p2_aces_l30",
-        "p1_df_rate_l30",
-        "p2_df_rate_l30",
-        "p1_ace_rate_l30",
-        "p2_ace_rate_l30",
         "p1_bp_conv_rate",
         "p2_bp_conv_rate",
         "p1_bp_defend_rate",
@@ -615,34 +531,6 @@ def build_match_state_panel(
         panel["perspective"], panel["p1_ace_rate"], panel["p2_ace_rate"]
     )
 
-    panel["avg_srv_speed_l30"] = avg_srv_speed_l30.compute(
-        panel["perspective"], panel["p1_avg_srv_speed_l30"], panel["p2_avg_srv_speed_l30"]
-    )
-    panel["fs_in_pct_l30"] = fs_in_pct_l30.compute(
-        panel["perspective"], panel["p1_fs_in_pct_l30"], panel["p2_fs_in_pct_l30"]
-    )
-    panel["ss_in_pct_l30"] = ss_in_pct_l30.compute(
-        panel["perspective"], panel["p1_ss_in_pct_l30"], panel["p2_ss_in_pct_l30"]
-    )
-    panel["fs_win_pct_l30"] = fs_win_pct_l30.compute(
-        panel["perspective"], panel["p1_fs_win_pct_l30"], panel["p2_fs_win_pct_l30"]
-    )
-    panel["ss_win_pct_l30"] = ss_win_pct_l30.compute(
-        panel["perspective"], panel["p1_ss_win_pct_l30"], panel["p2_ss_win_pct_l30"]
-    )
-    panel["ret_win_pct_l30"] = ret_win_pct_l30.compute(
-        panel["perspective"], panel["p1_ret_win_pct_l30"], panel["p2_ret_win_pct_l30"]
-    )
-    panel["aces_l30"] = aces_l30.compute(
-        panel["perspective"], panel["p1_aces_l30"], panel["p2_aces_l30"]
-    )
-    panel["df_rate_l30"] = df_rate_l30.compute(
-        panel["perspective"], panel["p1_df_rate_l30"], panel["p2_df_rate_l30"]
-    )
-    panel["ace_rate_l30"] = ace_rate_l30.compute(
-        panel["perspective"], panel["p1_ace_rate_l30"], panel["p2_ace_rate_l30"]
-    )
-
     panel["bp_conv_rate"] = bp_conv_rate.compute(
         panel["perspective"], panel["p1_bp_conv_rate"], panel["p2_bp_conv_rate"]
     )
@@ -679,33 +567,6 @@ def build_match_state_panel(
     )
     panel["opp_ace_rate"] = opp_ace_rate.compute(
         panel["perspective"], panel["p1_ace_rate"], panel["p2_ace_rate"]
-    )
-    panel["opp_avg_srv_speed_l30"] = opp_avg_srv_speed_l30.compute(
-        panel["perspective"], panel["p1_avg_srv_speed_l30"], panel["p2_avg_srv_speed_l30"]
-    )
-    panel["opp_fs_in_pct_l30"] = opp_fs_in_pct_l30.compute(
-        panel["perspective"], panel["p1_fs_in_pct_l30"], panel["p2_fs_in_pct_l30"]
-    )
-    panel["opp_ss_in_pct_l30"] = opp_ss_in_pct_l30.compute(
-        panel["perspective"], panel["p1_ss_in_pct_l30"], panel["p2_ss_in_pct_l30"]
-    )
-    panel["opp_fs_win_pct_l30"] = opp_fs_win_pct_l30.compute(
-        panel["perspective"], panel["p1_fs_win_pct_l30"], panel["p2_fs_win_pct_l30"]
-    )
-    panel["opp_ss_win_pct_l30"] = opp_ss_win_pct_l30.compute(
-        panel["perspective"], panel["p1_ss_win_pct_l30"], panel["p2_ss_win_pct_l30"]
-    )
-    panel["opp_ret_win_pct_l30"] = opp_ret_win_pct_l30.compute(
-        panel["perspective"], panel["p1_ret_win_pct_l30"], panel["p2_ret_win_pct_l30"]
-    )
-    panel["opp_aces_l30"] = opp_aces_l30.compute(
-        panel["perspective"], panel["p1_aces_l30"], panel["p2_aces_l30"]
-    )
-    panel["opp_df_rate_l30"] = opp_df_rate_l30.compute(
-        panel["perspective"], panel["p1_df_rate_l30"], panel["p2_df_rate_l30"]
-    )
-    panel["opp_ace_rate_l30"] = opp_ace_rate_l30.compute(
-        panel["perspective"], panel["p1_ace_rate_l30"], panel["p2_ace_rate_l30"]
     )
     panel["opp_bp_conv_rate"] = opp_bp_conv_rate.compute(
         panel["perspective"], panel["p1_bp_conv_rate"], panel["p2_bp_conv_rate"]
@@ -749,24 +610,6 @@ def build_match_state_panel(
         "p2_df_rate",
         "p1_ace_rate",
         "p2_ace_rate",
-        "p1_avg_srv_speed_l30",
-        "p2_avg_srv_speed_l30",
-        "p1_fs_in_pct_l30",
-        "p2_fs_in_pct_l30",
-        "p1_ss_in_pct_l30",
-        "p2_ss_in_pct_l30",
-        "p1_fs_win_pct_l30",
-        "p2_fs_win_pct_l30",
-        "p1_ss_win_pct_l30",
-        "p2_ss_win_pct_l30",
-        "p1_ret_win_pct_l30",
-        "p2_ret_win_pct_l30",
-        "p1_aces_l30",
-        "p2_aces_l30",
-        "p1_df_rate_l30",
-        "p2_df_rate_l30",
-        "p1_ace_rate_l30",
-        "p2_ace_rate_l30",
         "p1_bp_conv_rate",
         "p2_bp_conv_rate",
         "p1_bp_defend_rate",
@@ -810,15 +653,6 @@ def build_match_state_panel(
         "double_faults",
         "df_rate",
         "ace_rate",
-        "avg_srv_speed_l30",
-        "fs_in_pct_l30",
-        "ss_in_pct_l30",
-        "fs_win_pct_l30",
-        "ss_win_pct_l30",
-        "ret_win_pct_l30",
-        "aces_l30",
-        "df_rate_l30",
-        "ace_rate_l30",
         "bp_conv_rate",
         "bp_defend_rate",
         "opp_avg_srv_speed",
@@ -831,15 +665,6 @@ def build_match_state_panel(
         "opp_double_faults",
         "opp_df_rate",
         "opp_ace_rate",
-        "opp_avg_srv_speed_l30",
-        "opp_fs_in_pct_l30",
-        "opp_ss_in_pct_l30",
-        "opp_fs_win_pct_l30",
-        "opp_ss_win_pct_l30",
-        "opp_ret_win_pct_l30",
-        "opp_aces_l30",
-        "opp_df_rate_l30",
-        "opp_ace_rate_l30",
         "opp_bp_conv_rate",
         "opp_bp_defend_rate",
         "y_match",
