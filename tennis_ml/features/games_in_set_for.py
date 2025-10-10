@@ -1,0 +1,20 @@
+"""Games won in the current set for the perspective player."""
+
+from __future__ import annotations
+
+import numpy as np
+import pandas as pd
+
+
+def compute(
+    perspective: pd.Series,
+    p1_games: pd.Series,
+    p2_games: pd.Series,
+) -> pd.Series:
+    """Return games won in the set for each perspective."""
+
+    is_p1 = perspective.astype(str).str.upper().eq("P1")
+    return pd.Series(
+        np.where(is_p1, p1_games.astype(int), p2_games.astype(int)),
+        index=perspective.index,
+    )
